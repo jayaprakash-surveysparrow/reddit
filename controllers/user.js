@@ -16,28 +16,14 @@ async function getUserProfile(req, res) {
   }
 }
 
-async function getCurrentUser(req, res) {
-  try {
-    const userId = req.query.userId;
-    if (!userId) return res.status(400).json({ error: 'userId query param is required' });
-
-    const user = await findUserById(userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    res.status(200).json(toPublicUser(user));
-  } catch (err) {
-    console.error(err);
-    res.status(500).json({ error: 'Something went wrong' });
-  }
+function getCurrentUser(req, res) {
+  res.status(200).json(req.user);
 }
 
 async function updateCurrentUser(req, res) {
   try {
-    const { userId, username, email, password } = req.body;
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
-
-    const user = await findUserById(userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const { username, email, password } = req.body;
+    const user = req.user;
 
     const fields = {};
 

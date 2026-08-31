@@ -1,10 +1,5 @@
 const { DataTypes, Sequelize } = require('sequelize');
 const sequelize = require('../db/sequelize');
-
-// Maps onto the users table created by db/schema.sql. Case-insensitive
-// uniqueness on username/email is enforced there via functional indexes on
-// LOWER(...) — the DB is the source of truth for schema/constraints, not
-// Sequelize's sync(), so that's intentionally not redeclared here.
 const User = sequelize.define(
   'User',
   {

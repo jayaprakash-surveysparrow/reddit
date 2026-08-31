@@ -47,7 +47,7 @@ async function signup(req, res) {
     const usernameTaken = await findUserByUsername(username);
     if (usernameTaken) return res.status(409).json({ error: 'Username is already taken' });
 
-    const emailTaken = await findUserByEmail(email);
+    const emailTaken = await findUserByEpmail(email);
     if (emailTaken) return res.status(409).json({ error: 'Email is already registered' });
 
     const passwordHash = await bcrypt.hash(password, 10);

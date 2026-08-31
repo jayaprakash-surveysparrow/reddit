@@ -20,6 +20,10 @@ function signRefreshToken(user) {
   });
 }
 
+function verifyAccessToken(token) {
+  return jwt.verify(token, process.env.JWT_ACCESS_SECRET);
+}
+
 function verifyRefreshToken(token) {
   return jwt.verify(token, process.env.JWT_REFRESH_SECRET);
 }
@@ -27,6 +31,7 @@ function verifyRefreshToken(token) {
 module.exports = {
   signAccessToken,
   signRefreshToken,
+  verifyAccessToken,
   verifyRefreshToken,
   REFRESH_TOKEN_TTL_MS,
 };

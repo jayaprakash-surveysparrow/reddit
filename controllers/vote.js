@@ -7,12 +7,11 @@ const postOps = { adjustScore: adjustPostScore, refetch: findActivePostById };
 const commentOps = { adjustScore: adjustCommentScore, refetch: findCommentById };
 
 async function castOrChangeVote(req, res, targetType, target, ops) {
-  const { userId, value } = req.body;
-  if (!userId) return res.status(400).json({ error: 'userId is required' });
+  const { value } = req.body;
   if (value !== 1 && value !== -1) return res.status(400).json({ error: 'value must be 1 or -1' });
 
   await sequelize.transaction(async (t) => {
-    const existing = await findVote(userId, targetType, target.id, t);
+    const existing = await findVote(req.user.id, targetType, target.id, t);
     if (existing) {
       const delta = value - existing.value;
       if (delta !== 0) {
@@ -20,7 +19,7 @@ async function castOrChangeVote(req, res, targetType, target, ops) {
         await ops.adjustScore(target.id, delta, t);
       }
     } else {
-      await createVote({ user_id: userId, target_type: targetType, target_id: target.id, value }, t);
+      await createVote({ user_id: req.user.id, target_type: targetType, target_id: target.id, value }, t);
       await ops.adjustScore(target.id, value, t);
     }
   });
@@ -30,12 +29,9 @@ async function castOrChangeVote(req, res, targetType, target, ops) {
 }
 
 async function removeVote(req, res, targetType, target, ops) {
-  const { userId } = req.body;
-  if (!userId) return res.status(400).json({ error: 'userId is required' });
-
   let found = false;
   await sequelize.transaction(async (t) => {
-    const existing = await findVote(userId, targetType, target.id, t);
+    const existing = await findVote(req.user.id, targetType, target.id, t);
     if (!existing) return;
     found = true;
     await deleteVote(existing.id, t);

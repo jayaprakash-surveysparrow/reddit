@@ -1,7 +1,6 @@
 const { isOwnerOrModerator } = require('../utils/permissions');
 const { findActiveCommunityByName, findCommunityById } = require('../repositories/community');
 const { findMembership, listJoinedCommunityIds } = require('../repositories/communityMember');
-const { findUserById } = require('../repositories/user');
 const {
   findActivePostById,
   createPost: createPostRow,
@@ -16,12 +15,9 @@ async function createPost(req, res) {
     const community = await findActiveCommunityByName(req.params.name);
     if (!community) return res.status(404).json({ error: 'Community not found' });
 
-    const { userId, title, body, url, post_type } = req.body;
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
-    const user = await findUserById(userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
+    const { title, body, url, post_type } = req.body;
 
-    const membership = await findMembership(community.id, userId);
+    const membership = await findMembership(community.id, req.user.id);
     if (!membership) return res.status(403).json({ error: 'Join the community before posting' });
 
     if (!title) return res.status(400).json({ error: 'title is required' });
@@ -32,7 +28,7 @@ async function createPost(req, res) {
 
     const post = await createPostRow({
       community_id: community.id,
-      author_id: userId,
+      author_id: req.user.id,
       title,
       body: post_type === 'text' ? body || null : null,
       url: post_type === 'link' ? url : null,
@@ -62,9 +58,8 @@ async function updatePost(req, res) {
     const post = await findActivePostById(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post not found' });
 
-    const { userId, title, body, url } = req.body;
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
-    if (post.author_id !== userId) return res.status(403).json({ error: 'Only the post author can do this' });
+    const { title, body, url } = req.body;
+    if (post.author_id !== req.user.id) return res.status(403).json({ error: 'Only the post author can do this' });
 
     const fields = {};
     if (title !== undefined) fields.title = title;
@@ -85,13 +80,10 @@ async function deletePost(req, res) {
     const post = await findActivePostById(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post not found' });
 
-    const { userId } = req.body;
-    if (!userId) return res.status(400).json({ error: 'userId is required' });
-
-    let allowed = post.author_id === userId;
+    let allowed = post.author_id === req.user.id;
     if (!allowed) {
       const community = await findCommunityById(post.community_id);
-      const membership = community ? await findMembership(community.id, userId) : null;
+      const membership = community ? await findMembership(community.id, req.user.id) : null;
       allowed = isOwnerOrModerator(membership);
     }
     if (!allowed) return res.status(403).json({ error: 'Only the post author or a community moderator can do this' });
@@ -119,13 +111,7 @@ async function listCommunityPosts(req, res) {
 
 async function getHomeFeed(req, res) {
   try {
-    const userId = req.query.userId;
-    if (!userId) return res.status(400).json({ error: 'userId query param is required' });
-
-    const user = await findUserById(userId);
-    if (!user) return res.status(404).json({ error: 'User not found' });
-
-    const communityIds = await listJoinedCommunityIds(userId);
+    const communityIds = await listJoinedCommunityIds(req.user.id);
     const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
 
     const posts = communityIds.length
