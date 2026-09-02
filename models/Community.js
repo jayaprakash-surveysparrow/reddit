@@ -1,8 +1,5 @@
 const { DataTypes, Sequelize } = require('sequelize');
 const sequelize = require('../db/sequelize');
-
-// Case-insensitive uniqueness among non-deleted communities is enforced by
-// the partial index in db/schema.sql, not by Sequelize.
 const Community = sequelize.define(
   'Community',
   {
@@ -22,7 +19,7 @@ const Community = sequelize.define(
     },
     created_by: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
     },
     member_count: {
       type: DataTypes.INTEGER,

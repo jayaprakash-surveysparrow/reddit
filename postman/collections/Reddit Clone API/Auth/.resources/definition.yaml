@@ -1,0 +1,5 @@
+$kind: collection
+name: Auth
+description: Authentication endpoints - signup, login, token refresh, password reset, and logout.
+auth:
+  type: noauth

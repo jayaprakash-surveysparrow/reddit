@@ -1,6 +1,8 @@
 const { verifyAccessToken } = require('../utils/jwt');
 const { findUserById } = require('../repositories/user');
 const { toPublicUser } = require('../utils/serializers');
+const { runWithActor } = require('../db/auditContext');
+const logger = require('../utils/logger');
 
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
@@ -22,9 +24,9 @@ async function requireAuth(req, res, next) {
     if (!user) return res.status(401).json({ error: 'User no longer exists' });
 
     req.user = toPublicUser(user);
-    next();
+    runWithActor(user.id, next);
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }

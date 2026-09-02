@@ -1,0 +1,3 @@
+$kind: collection
+name: Posts
+description: Post retrieval, editing, deletion, voting, and comment management.

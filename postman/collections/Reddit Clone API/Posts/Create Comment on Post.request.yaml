@@ -1,0 +1,15 @@
+$kind: http-request
+name: Create Comment on Post
+order: 7000
+method: POST
+url: '{{baseUrl}}/posts/{{postId}}/comments'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "body": "This is my comment",
+      "parent_comment_id": null
+    }

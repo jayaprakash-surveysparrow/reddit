@@ -1,0 +1,22 @@
+$kind: http-request
+name: Login
+order: 2000
+method: POST
+url: '{{baseUrl}}/auth/login'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "username": "johndoe",
+      "password": "password123"
+    }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      const json = pm.response.json();
+      if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);
+      if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);

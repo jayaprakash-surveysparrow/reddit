@@ -1,25 +1,54 @@
-const sequelize = require('../db/sequelize');
-const { Vote } = require('../models');
+const { PostVote, CommentVote } = require('../models');
 
-async function findVote(userId, targetType, targetId, transaction) {
-  const vote = await Vote.findOne({
-    where: { user_id: userId, target_type: targetType, target_id: targetId },
-    transaction,
-  });
+async function findPostVote(userId, postId, transaction) {
+  const vote = await PostVote.findOne({ where: { user_id: userId, post_id: postId }, transaction });
   return vote ? vote.get({ plain: true }) : null;
 }
 
-async function createVote(data, transaction) {
-  const vote = await Vote.create(data, { transaction });
+async function createPostVote(userId, postId, value, transaction) {
+  const vote = await PostVote.create({ user_id: userId, post_id: postId, value }, { transaction });
   return vote.get({ plain: true });
 }
 
-async function updateVoteValue(id, value, transaction) {
-  await Vote.update({ value, created_at: sequelize.literal('now()') }, { where: { id }, transaction });
+async function updatePostVoteValue(id, value, transaction) {
+  await PostVote.update(
+    { value, created_at: new Date() },
+    { where: { id }, transaction, individualHooks: true }
+  );
 }
 
-async function deleteVote(id, transaction) {
-  await Vote.destroy({ where: { id }, transaction });
+async function deletePostVote(id, transaction) {
+  await PostVote.destroy({ where: { id }, transaction, individualHooks: true });
 }
 
-module.exports = { findVote, createVote, updateVoteValue, deleteVote };
+async function findCommentVote(userId, commentId, transaction) {
+  const vote = await CommentVote.findOne({ where: { user_id: userId, comment_id: commentId }, transaction });
+  return vote ? vote.get({ plain: true }) : null;
+}
+
+async function createCommentVote(userId, commentId, value, transaction) {
+  const vote = await CommentVote.create({ user_id: userId, comment_id: commentId, value }, { transaction });
+  return vote.get({ plain: true });
+}
+
+async function updateCommentVoteValue(id, value, transaction) {
+  await CommentVote.update(
+    { value, created_at: new Date() },
+    { where: { id }, transaction, individualHooks: true }
+  );
+}
+
+async function deleteCommentVote(id, transaction) {
+  await CommentVote.destroy({ where: { id }, transaction, individualHooks: true });
+}
+
+module.exports = {
+  findPostVote,
+  createPostVote,
+  updatePostVoteValue,
+  deletePostVote,
+  findCommentVote,
+  createCommentVote,
+  updateCommentVoteValue,
+  deleteCommentVote,
+};

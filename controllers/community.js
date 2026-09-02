@@ -1,6 +1,8 @@
+const logger = require('../utils/logger');
 const sequelize = require('../db/sequelize');
 const { COMMUNITY_NAME_PATTERN } = require('../utils/validators');
 const { isOwner } = require('../utils/permissions');
+const { parsePagination } = require('../utils/pagination');
 const {
   findActiveCommunityByName,
   isActiveNameTaken,
@@ -16,6 +18,7 @@ const {
   removeMembership,
   listMembersWithUsers,
 } = require('../repositories/communityMember');
+const { invalidateCommunity, invalidateCommunityMembersList } = require('../cache/invalidate');
 
 async function createCommunity(req, res) {
   const { name, description } = req.body;
@@ -35,17 +38,18 @@ async function createCommunity(req, res) {
 
     res.status(201).json(community);
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
 
 async function listCommunities(req, res) {
   try {
-    const communities = await listActiveCommunities(req.query.q);
-    res.status(200).json({ communities });
+    const { limit, offset, page } = parsePagination(req.query);
+    const communities = await listActiveCommunities(req.query.q, limit, offset);
+    res.status(200).json({ communities, page, limit });
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -56,7 +60,7 @@ async function getCommunity(req, res) {
     if (!community) return res.status(404).json({ error: 'Community not found' });
     res.status(200).json(community);
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -84,12 +88,14 @@ async function updateCommunity(req, res) {
 
     if (Object.keys(fields).length > 0) {
       await updateCommunityFields(community.id, fields);
+      await invalidateCommunity(community.name);
+      if (fields.name) await invalidateCommunity(fields.name);
     }
 
     const updated = await findActiveCommunityByName(fields.name || community.name);
     res.status(200).json(updated);
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -103,9 +109,10 @@ async function deleteCommunity(req, res) {
     if (!isOwner(membership)) return res.status(403).json({ error: 'Only the community owner can do this' });
 
     await softDeleteCommunity(community.id);
+    await invalidateCommunity(community.name);
     res.status(204).send();
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -122,11 +129,13 @@ async function joinCommunity(req, res) {
       await addMembership(community.id, req.user.id, 'member', t);
       await incrementMemberCount(community.id, 1, t);
     });
+    await invalidateCommunity(community.name);
+    await invalidateCommunityMembersList(community.name);
 
     const updated = await findActiveCommunityByName(community.name);
     res.status(200).json(updated);
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -146,10 +155,12 @@ async function leaveCommunity(req, res) {
       await removeMembership(community.id, req.user.id, t);
       await incrementMemberCount(community.id, -1, t);
     });
+    await invalidateCommunity(community.name);
+    await invalidateCommunityMembersList(community.name);
 
     res.status(204).send();
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -159,10 +170,11 @@ async function listMembers(req, res) {
     const community = await findActiveCommunityByName(req.params.name);
     if (!community) return res.status(404).json({ error: 'Community not found' });
 
-    const members = await listMembersWithUsers(community.id);
-    res.status(200).json({ members });
+    const { limit, offset, page } = parsePagination(req.query);
+    const members = await listMembersWithUsers(community.id, limit, offset);
+    res.status(200).json({ members, page, limit });
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }

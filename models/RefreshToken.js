@@ -21,10 +21,6 @@ const RefreshToken = sequelize.define(
       type: DataTypes.DATE,
       allowNull: false,
     },
-    revoked_at: {
-      type: DataTypes.DATE,
-      allowNull: true,
-    },
     created_at: {
       type: DataTypes.DATE,
       allowNull: false,

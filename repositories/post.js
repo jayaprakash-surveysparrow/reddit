@@ -1,11 +1,31 @@
 const { Op } = require('sequelize');
-const sequelize = require('../db/sequelize');
-const { Post } = require('../models');
-const { sortPosts } = require('../utils/postSort');
+const { Post, User, Community } = require('../models');
+const { postOrderClause } = require('../utils/postOrder');
+
+// required: false on both includes matters: author_id/community_id can be
+// null (author deleted) — a default INNER JOIN would silently drop those
+// posts from every list/lookup instead of showing them with a null author.
+const DISPLAY_INCLUDES = [
+  { model: User, as: 'author', attributes: ['id', 'username'], required: false },
+  { model: Community, as: 'community', attributes: ['id', 'name'], required: false },
+];
+
+function flattenPost(instance) {
+  const post = instance.get({ plain: true });
+  const author_username = post.author ? post.author.username : null;
+  const community_name = post.community ? post.community.name : null;
+  delete post.author;
+  delete post.community;
+  return { ...post, author_username, community_name };
+}
 
 async function findActivePostById(id, transaction) {
-  const post = await Post.findOne({ where: { id, deleted_at: null }, transaction });
-  return post ? post.get({ plain: true }) : null;
+  const post = await Post.findOne({
+    where: { id, deleted_at: null },
+    include: DISPLAY_INCLUDES,
+    transaction,
+  });
+  return post ? flattenPost(post) : null;
 }
 
 async function findPostById(id, transaction) {
@@ -19,11 +39,14 @@ async function createPost(data, transaction) {
 }
 
 async function updatePostFields(id, fields, transaction) {
-  await Post.update(fields, { where: { id }, transaction });
+  await Post.update(fields, { where: { id }, transaction, individualHooks: true });
 }
 
 async function softDeletePost(id, transaction) {
-  await Post.update({ deleted_at: sequelize.literal('now()') }, { where: { id }, transaction });
+  await Post.update(
+    { deleted_at: new Date() },
+    { where: { id }, transaction, individualHooks: true }
+  );
 }
 
 async function incrementCommentCount(id, transaction) {
@@ -34,22 +57,37 @@ async function adjustScore(id, delta, transaction) {
   await Post.increment('score', { by: delta, where: { id }, transaction });
 }
 
-async function listActivePostsByCommunity(communityId, sort) {
-  const posts = await Post.findAll({ where: { community_id: communityId, deleted_at: null } });
-  return sortPosts(posts.map((p) => p.get({ plain: true })), sort);
+async function listActivePostsByCommunity(communityId, sort, limit, offset) {
+  const posts = await Post.findAll({
+    where: { community_id: communityId, deleted_at: null },
+    include: DISPLAY_INCLUDES,
+    order: postOrderClause(sort),
+    limit,
+    offset,
+  });
+  return posts.map(flattenPost);
 }
 
-async function listActivePostsByCommunityIds(communityIds, sort, limit) {
-  const posts = await Post.findAll({ where: { community_id: { [Op.in]: communityIds }, deleted_at: null } });
-  return sortPosts(posts.map((p) => p.get({ plain: true })), sort).slice(0, limit);
+async function listActivePostsByCommunityIds(communityIds, sort, limit, offset) {
+  const posts = await Post.findAll({
+    where: { community_id: { [Op.in]: communityIds }, deleted_at: null },
+    include: DISPLAY_INCLUDES,
+    order: postOrderClause(sort),
+    limit,
+    offset,
+  });
+  return posts.map(flattenPost);
 }
 
-async function listActivePostsByAuthor(authorId) {
+async function listActivePostsByAuthor(authorId, limit, offset) {
   const posts = await Post.findAll({
     where: { author_id: authorId, deleted_at: null },
+    include: DISPLAY_INCLUDES,
     order: [['created_at', 'DESC']],
+    limit,
+    offset,
   });
-  return posts.map((p) => p.get({ plain: true }));
+  return posts.map(flattenPost);
 }
 
 module.exports = {

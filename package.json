@@ -22,11 +22,16 @@
   "homepage": "https://github.com/jayaprakash-surveysparrow/reddit#readme",
   "dependencies": {
     "bcryptjs": "^3.0.3",
+    "brew": "^0.0.8",
     "cors": "^2.8.6",
     "dotenv": "^17.4.2",
     "express": "^5.2.1",
+    "ioredis": "^6.0.0",
+    "joi": "^18.2.5",
     "jsonwebtoken": "^9.0.3",
     "pg": "^8.23.0",
-    "sequelize": "^6.37.8"
+    "redis": "^6.2.1",
+    "sequelize": "^6.37.8",
+    "winston": "^3.19.0"
   }
 }

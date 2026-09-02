@@ -1,0 +1,12 @@
+$kind: http-request
+name: List Community Posts
+order: 9000
+method: GET
+url: '{{baseUrl}}/communities/{{communityName}}/posts'
+queryParams:
+  - key: sort
+    value: hot
+    description: 'Sort order: hot, new, top'
+    disabled: true
+auth:
+  type: noauth

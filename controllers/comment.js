@@ -1,3 +1,4 @@
+const logger = require('../utils/logger');
 const sequelize = require('../db/sequelize');
 const { isOwnerOrModerator } = require('../utils/permissions');
 const { buildCommentTree } = require('../utils/commentTree');
@@ -11,6 +12,7 @@ const {
   softDeleteComment,
   listCommentsByPost,
 } = require('../repositories/comment');
+const { invalidatePost } = require('../cache/invalidate');
 
 async function createComment(req, res) {
   try {
@@ -35,10 +37,11 @@ async function createComment(req, res) {
       await incrementCommentCount(post.id, t);
       return created;
     });
+    await invalidatePost(post.id);
 
     res.status(201).json(comment);
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -51,7 +54,7 @@ async function getCommentTree(req, res) {
     const comments = await listCommentsByPost(post.id);
     res.status(200).json({ comments: buildCommentTree(comments) });
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -66,11 +69,12 @@ async function updateComment(req, res) {
 
     if (!body) return res.status(400).json({ error: 'body is required' });
     await updateCommentBody(comment.id, body);
+    await invalidatePost(comment.post_id);
 
     const updated = await findCommentById(comment.id);
     res.status(200).json(updated);
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -92,9 +96,10 @@ async function deleteComment(req, res) {
     }
 
     await softDeleteComment(comment.id);
+    await invalidatePost(comment.post_id);
     res.status(204).send();
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }

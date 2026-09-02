@@ -1,0 +1,15 @@
+$kind: http-request
+name: Update Post
+order: 2000
+method: PATCH
+url: '{{baseUrl}}/posts/{{postId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "Updated post title",
+      "body": "Updated post body"
+    }

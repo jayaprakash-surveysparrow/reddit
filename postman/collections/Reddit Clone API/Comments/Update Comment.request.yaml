@@ -1,0 +1,14 @@
+$kind: http-request
+name: Update Comment
+order: 1000
+method: PATCH
+url: '{{baseUrl}}/comments/{{commentId}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "body": "Updated comment text"
+    }

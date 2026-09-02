@@ -35,20 +35,23 @@ async function createCommunity({ name, description, createdBy }, transaction) {
 }
 
 async function updateCommunityFields(id, fields, transaction) {
-  await Community.update(fields, { where: { id }, transaction });
+  await Community.update(fields, { where: { id }, transaction, individualHooks: true });
 }
 
 async function softDeleteCommunity(id, transaction) {
-  await Community.update({ deleted_at: sequelize.literal('now()') }, { where: { id }, transaction });
+  await Community.update(
+    { deleted_at: new Date() },
+    { where: { id }, transaction, individualHooks: true }
+  );
 }
 
 async function incrementMemberCount(id, delta, transaction) {
   await Community.increment('member_count', { by: delta, where: { id }, transaction });
 }
 
-async function listActiveCommunities(nameQuery) {
+async function listActiveCommunities(nameQuery, limit, offset) {
   const where = nameQuery ? { deleted_at: null, name: { [Op.iLike]: `%${nameQuery}%` } } : { deleted_at: null };
-  const communities = await Community.findAll({ where, order: [['member_count', 'DESC']] });
+  const communities = await Community.findAll({ where, order: [['member_count', 'DESC']], limit, offset });
   return communities.map((c) => c.get({ plain: true }));
 }
 

@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get Post Comments
+order: 6000
+method: GET
+url: '{{baseUrl}}/posts/{{postId}}/comments'
+auth:
+  type: noauth

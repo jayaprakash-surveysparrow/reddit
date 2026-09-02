@@ -1,0 +1,14 @@
+$kind: http-request
+name: Update Community
+order: 4000
+method: PATCH
+url: '{{baseUrl}}/communities/{{communityName}}'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "description": "Updated community description"
+    }

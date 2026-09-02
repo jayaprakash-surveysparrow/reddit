@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get Post
+order: 1000
+method: GET
+url: '{{baseUrl}}/posts/{{postId}}'
+auth:
+  type: noauth

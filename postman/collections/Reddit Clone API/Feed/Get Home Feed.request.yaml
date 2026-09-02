@@ -1,0 +1,14 @@
+$kind: http-request
+name: Get Home Feed
+order: 1000
+method: GET
+url: '{{baseUrl}}/feed'
+queryParams:
+  - key: sort
+    value: hot
+    description: 'Sort order: hot, new, top'
+    disabled: true
+  - key: limit
+    value: '10'
+    description: Number of posts to return (max 50)
+    disabled: true

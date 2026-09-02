@@ -1,0 +1,16 @@
+$kind: http-request
+name: Update Current User
+order: 2000
+method: PATCH
+url: '{{baseUrl}}/users/me'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "username": "newusername",
+      "email": "newemail@example.com",
+      "password": "newpassword123"
+    }

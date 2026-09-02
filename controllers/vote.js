@@ -1,44 +1,80 @@
+const logger = require('../utils/logger');
 const sequelize = require('../db/sequelize');
 const { findActivePostById, adjustScore: adjustPostScore } = require('../repositories/post');
 const { findCommentById, adjustScore: adjustCommentScore } = require('../repositories/comment');
-const { findVote, createVote, updateVoteValue, deleteVote } = require('../repositories/vote');
+const {
+  findPostVote,
+  createPostVote,
+  updatePostVoteValue,
+  deletePostVote,
+  findCommentVote,
+  createCommentVote,
+  updateCommentVoteValue,
+  deleteCommentVote,
+} = require('../repositories/vote');
+const { invalidatePost } = require('../cache/invalidate');
 
-const postOps = { adjustScore: adjustPostScore, refetch: findActivePostById };
-const commentOps = { adjustScore: adjustCommentScore, refetch: findCommentById };
+const postOps = {
+  findVote: findPostVote,
+  createVote: createPostVote,
+  updateVoteValue: updatePostVoteValue,
+  deleteVote: deletePostVote,
+  adjustScore: adjustPostScore,
+  refetch: findActivePostById,
+  // A comment vote affects the comment tree embedded in GET /posts/:id, so
+  // both vote paths need to know which post's cache to bust — for a post
+  // vote that's just the target itself; for a comment vote it's the
+  // comment's parent post.
+  postIdOf: (target) => target.id,
+};
 
-async function castOrChangeVote(req, res, targetType, target, ops) {
+const commentOps = {
+  findVote: findCommentVote,
+  createVote: createCommentVote,
+  updateVoteValue: updateCommentVoteValue,
+  deleteVote: deleteCommentVote,
+  adjustScore: adjustCommentScore,
+  refetch: findCommentById,
+  postIdOf: (target) => target.post_id,
+};
+
+async function castOrChangeVote(req, res, target, ops) {
   const { value } = req.body;
   if (value !== 1 && value !== -1) return res.status(400).json({ error: 'value must be 1 or -1' });
 
   await sequelize.transaction(async (t) => {
-    const existing = await findVote(req.user.id, targetType, target.id, t);
+    const existing = await ops.findVote(req.user.id, target.id, t);
     if (existing) {
       const delta = value - existing.value;
       if (delta !== 0) {
-        await updateVoteValue(existing.id, value, t);
+        await ops.updateVoteValue(existing.id, value, t);
         await ops.adjustScore(target.id, delta, t);
       }
     } else {
-      await createVote({ user_id: req.user.id, target_type: targetType, target_id: target.id, value }, t);
+      await ops.createVote(req.user.id, target.id, value, t);
       await ops.adjustScore(target.id, value, t);
     }
   });
+
+  await invalidatePost(ops.postIdOf(target));
 
   const fresh = await ops.refetch(target.id);
   res.status(200).json({ target_id: target.id, value, score: fresh.score });
 }
 
-async function removeVote(req, res, targetType, target, ops) {
+async function removeVote(req, res, target, ops) {
   let found = false;
   await sequelize.transaction(async (t) => {
-    const existing = await findVote(req.user.id, targetType, target.id, t);
+    const existing = await ops.findVote(req.user.id, target.id, t);
     if (!existing) return;
     found = true;
-    await deleteVote(existing.id, t);
+    await ops.deleteVote(existing.id, t);
     await ops.adjustScore(target.id, -existing.value, t);
   });
 
   if (!found) return res.status(404).json({ error: 'No existing vote to remove' });
+
+  await invalidatePost(ops.postIdOf(target));
 
   const fresh = await ops.refetch(target.id);
   res.status(200).json({ target_id: target.id, score: fresh.score });
@@ -48,9 +84,9 @@ async function castOrChangePostVote(req, res) {
   try {
     const post = await findActivePostById(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post not found' });
-    await castOrChangeVote(req, res, 'post', post, postOps);
+    await castOrChangeVote(req, res, post, postOps);
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -59,9 +95,9 @@ async function removePostVote(req, res) {
   try {
     const post = await findActivePostById(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post not found' });
-    await removeVote(req, res, 'post', post, postOps);
+    await removeVote(req, res, post, postOps);
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -70,9 +106,9 @@ async function castOrChangeCommentVote(req, res) {
   try {
     const comment = await findCommentById(req.params.id);
     if (!comment || comment.deleted_at) return res.status(404).json({ error: 'Comment not found' });
-    await castOrChangeVote(req, res, 'comment', comment, commentOps);
+    await castOrChangeVote(req, res, comment, commentOps);
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -81,9 +117,9 @@ async function removeCommentVote(req, res) {
   try {
     const comment = await findCommentById(req.params.id);
     if (!comment || comment.deleted_at) return res.status(404).json({ error: 'Comment not found' });
-    await removeVote(req, res, 'comment', comment, commentOps);
+    await removeVote(req, res, comment, commentOps);
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }

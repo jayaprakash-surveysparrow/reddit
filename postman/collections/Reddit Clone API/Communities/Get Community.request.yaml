@@ -1,0 +1,7 @@
+$kind: http-request
+name: Get Community
+order: 3000
+method: GET
+url: '{{baseUrl}}/communities/{{communityName}}'
+auth:
+  type: noauth

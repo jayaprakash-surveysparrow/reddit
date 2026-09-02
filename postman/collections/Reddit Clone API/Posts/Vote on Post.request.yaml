@@ -1,0 +1,14 @@
+$kind: http-request
+name: Vote on Post
+order: 4000
+method: PUT
+url: '{{baseUrl}}/posts/{{postId}}/vote'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "value": 1
+    }

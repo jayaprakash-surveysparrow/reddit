@@ -1,6 +1,10 @@
+const logger = require('../utils/logger');
 const { isOwnerOrModerator } = require('../utils/permissions');
+const { parsePagination } = require('../utils/pagination');
+const { buildCommentTree } = require('../utils/commentTree');
 const { findActiveCommunityByName, findCommunityById } = require('../repositories/community');
 const { findMembership, listJoinedCommunityIds } = require('../repositories/communityMember');
+const { listCommentsByPost } = require('../repositories/comment');
 const {
   findActivePostById,
   createPost: createPostRow,
@@ -9,6 +13,7 @@ const {
   listActivePostsByCommunity,
   listActivePostsByCommunityIds,
 } = require('../repositories/post');
+const { invalidatePost, invalidateCommunityPostsList } = require('../cache/invalidate');
 
 async function createPost(req, res) {
   try {
@@ -34,10 +39,11 @@ async function createPost(req, res) {
       url: post_type === 'link' ? url : null,
       post_type,
     });
+    await invalidateCommunityPostsList(community.name);
 
     res.status(201).json(post);
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -46,9 +52,11 @@ async function getPost(req, res) {
   try {
     const post = await findActivePostById(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post not found' });
-    res.status(200).json(post);
+
+    const comments = await listCommentsByPost(post.id);
+    res.status(200).json({ ...post, comments: buildCommentTree(comments) });
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -65,12 +73,15 @@ async function updatePost(req, res) {
     if (title !== undefined) fields.title = title;
     if (body !== undefined) fields.body = body;
     if (url !== undefined) fields.url = url;
-    if (Object.keys(fields).length > 0) await updatePostFields(post.id, fields);
+    if (Object.keys(fields).length > 0) {
+      await updatePostFields(post.id, fields);
+      await invalidatePost(post.id);
+    }
 
     const updated = await findActivePostById(post.id);
     res.status(200).json(updated);
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -80,18 +91,21 @@ async function deletePost(req, res) {
     const post = await findActivePostById(req.params.id);
     if (!post) return res.status(404).json({ error: 'Post not found' });
 
+    const community = await findCommunityById(post.community_id);
+
     let allowed = post.author_id === req.user.id;
     if (!allowed) {
-      const community = await findCommunityById(post.community_id);
       const membership = community ? await findMembership(community.id, req.user.id) : null;
       allowed = isOwnerOrModerator(membership);
     }
     if (!allowed) return res.status(403).json({ error: 'Only the post author or a community moderator can do this' });
 
     await softDeletePost(post.id);
+    await invalidatePost(post.id);
+    if (community) await invalidateCommunityPostsList(community.name);
     res.status(204).send();
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -101,26 +115,27 @@ async function listCommunityPosts(req, res) {
     const community = await findActiveCommunityByName(req.params.name);
     if (!community) return res.status(404).json({ error: 'Community not found' });
 
-    const posts = await listActivePostsByCommunity(community.id, req.query.sort);
-    res.status(200).json({ posts });
+    const { limit, offset, page } = parsePagination(req.query);
+    const posts = await listActivePostsByCommunity(community.id, req.query.sort, limit, offset);
+    res.status(200).json({ posts, page, limit });
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
 
 async function getHomeFeed(req, res) {
   try {
+    const { limit, offset, page } = parsePagination(req.query);
     const communityIds = await listJoinedCommunityIds(req.user.id);
-    const limit = Math.min(parseInt(req.query.limit, 10) || 10, 50);
 
     const posts = communityIds.length
-      ? await listActivePostsByCommunityIds(communityIds, req.query.sort, limit)
+      ? await listActivePostsByCommunityIds(communityIds, req.query.sort, limit, offset)
       : [];
 
-    res.status(200).json({ posts });
+    res.status(200).json({ posts, page, limit });
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }

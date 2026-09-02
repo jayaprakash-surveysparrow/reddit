@@ -1,0 +1,11 @@
+$kind: collection
+name: Reddit Clone API
+description: A Reddit clone REST API with auth, communities, posts, comments, and voting.
+auth:
+  type: bearer
+  credentials:
+    token: "{{accessToken}}"
+variables:
+  baseUrl: http://localhost:3000/api/v1
+  accessToken: ""
+  refreshToken: ""

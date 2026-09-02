@@ -1,0 +1,12 @@
+$kind: http-request
+name: List Communities
+order: 1000
+method: GET
+url: '{{baseUrl}}/communities'
+queryParams:
+  - key: q
+    value: ''
+    description: Optional search query to filter communities
+    disabled: true
+auth:
+  type: noauth

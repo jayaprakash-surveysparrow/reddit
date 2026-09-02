@@ -40,11 +40,14 @@ async function createUser({ username, email, passwordHash }) {
 }
 
 async function updateUserFields(id, fields, transaction) {
-  await User.update(fields, { where: { id }, transaction });
+  await User.update(fields, { where: { id }, transaction, individualHooks: true });
 }
 
 async function updatePasswordHash(userId, passwordHash, transaction) {
-  await User.update({ password_hash: passwordHash }, { where: { id: userId }, transaction });
+  await User.update(
+    { password_hash: passwordHash },
+    { where: { id: userId }, transaction, individualHooks: true }
+  );
 }
 
 module.exports = {

@@ -1,9 +1,11 @@
+const logger = require('../utils/logger');
 const crypto = require('crypto');
 const bcrypt = require('bcryptjs');
 const { toPublicUser } = require('../utils/serializers');
 const { hashToken } = require('../utils/tokens');
 const { signAccessToken, signRefreshToken, verifyRefreshToken, REFRESH_TOKEN_TTL_MS } = require('../utils/jwt');
 const sequelize = require('../db/sequelize');
+
 const {
   findUserById,
   findUserByUsername,
@@ -21,8 +23,8 @@ const {
 const {
   createRefreshToken,
   findValidRefreshToken,
-  revokeRefreshTokenById,
-  revokeRefreshTokenByHash,
+  deleteRefreshTokenById,
+  deleteRefreshTokenByHash,
 } = require('../repositories/refreshToken');
 
 const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
@@ -47,7 +49,7 @@ async function signup(req, res) {
     const usernameTaken = await findUserByUsername(username);
     if (usernameTaken) return res.status(409).json({ error: 'Username is already taken' });
 
-    const emailTaken = await findUserByEpmail(email);
+    const emailTaken = await findUserByEmail(email);
     if (emailTaken) return res.status(409).json({ error: 'Email is already registered' });
 
     const passwordHash = await bcrypt.hash(password, 10);
@@ -56,7 +58,7 @@ async function signup(req, res) {
 
     res.status(201).json({ user, ...tokens });
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -77,7 +79,7 @@ async function login(req, res) {
     const tokens = await issueTokenPair(user);
     res.status(200).json({ user: toPublicUser(user), ...tokens });
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -103,7 +105,7 @@ async function forgotPassword(req, res) {
   
     res.status(200).json({ message: genericMessage, resetToken: rawToken, expiresAt });
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -131,7 +133,7 @@ async function resetPassword(req, res) {
 
     res.status(200).json({ message: 'Password has been reset successfully.' });
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -157,7 +159,7 @@ async function refreshAccessToken(req, res) {
       const user = await findUserById(payload.sub, t);
       if (!user) return null;
 
-      await revokeRefreshTokenById(record.id, t);
+      await deleteRefreshTokenById(record.id, t);
       return issueTokenPair(user, t);
     });
 
@@ -165,7 +167,7 @@ async function refreshAccessToken(req, res) {
 
     res.status(200).json(tokens);
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }
@@ -176,12 +178,12 @@ async function logout(req, res) {
 
   try {
     const tokenHash = hashToken(refreshToken);
-    const affected = await revokeRefreshTokenByHash(tokenHash);
+    const affected = await deleteRefreshTokenByHash(tokenHash);
     if (!affected) return res.status(404).json({ error: 'Refresh token not found or already revoked' });
 
     res.status(204).send();
   } catch (err) {
-    console.error(err);
+    logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
   }
 }

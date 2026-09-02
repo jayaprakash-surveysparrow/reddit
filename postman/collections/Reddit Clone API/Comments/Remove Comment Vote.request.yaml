@@ -1,0 +1,5 @@
+$kind: http-request
+name: Remove Comment Vote
+order: 4000
+method: DELETE
+url: '{{baseUrl}}/comments/{{commentId}}/vote'

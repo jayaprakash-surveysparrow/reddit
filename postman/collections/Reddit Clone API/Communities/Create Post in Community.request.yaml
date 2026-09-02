@@ -1,0 +1,16 @@
+$kind: http-request
+name: Create Post in Community
+order: 10000
+method: POST
+url: '{{baseUrl}}/communities/{{communityName}}/posts'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "title": "My first post",
+      "body": "This is the body of my post",
+      "post_type": "text"
+    }

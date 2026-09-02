@@ -1,32 +1,33 @@
 const { DataTypes, Sequelize } = require('sequelize');
 const sequelize = require('../db/sequelize');
 
-// target_id has no association/FK: it polymorphically points at either
-// posts or comments depending on target_type, which is validated at the
-// repository/controller layer, not by Sequelize or the DB.
-const Vote = sequelize.define(
-  'Vote',
+const AuditLog = sequelize.define(
+  'AuditLog',
   {
     id: {
       type: DataTypes.UUID,
       primaryKey: true,
       defaultValue: Sequelize.literal('gen_random_uuid()'),
     },
-    user_id: {
-      type: DataTypes.UUID,
+    entity_type: {
+      type: DataTypes.STRING(50),
       allowNull: false,
     },
-    target_type: {
+    entity_id: {
+      type: DataTypes.UUID,
+      allowNull: true,
+    },
+    action: {
       type: DataTypes.STRING(10),
       allowNull: false,
     },
-    target_id: {
+    actor_id: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
     },
-    value: {
-      type: DataTypes.SMALLINT,
-      allowNull: false,
+    changes: {
+      type: DataTypes.JSONB,
+      allowNull: true,
     },
     created_at: {
       type: DataTypes.DATE,
@@ -35,9 +36,9 @@ const Vote = sequelize.define(
     },
   },
   {
-    tableName: 'votes',
+    tableName: 'audit_logs',
     timestamps: false,
   }
 );
 
-module.exports = Vote;
+module.exports = AuditLog;

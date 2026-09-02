@@ -1,0 +1,15 @@
+$kind: http-request
+name: Create Community
+order: 2000
+method: POST
+url: '{{baseUrl}}/communities'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "name": "programming",
+      "description": "A community for programmers"
+    }

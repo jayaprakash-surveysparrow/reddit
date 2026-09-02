@@ -1,0 +1,16 @@
+$kind: http-request
+name: Signup
+order: 1000
+method: POST
+url: '{{baseUrl}}/auth/signup'
+headers:
+  - key: Content-Type
+    value: application/json
+body:
+  type: json
+  content: |-
+    {
+      "username": "johndoe",
+      "email": "johndoe@example.com",
+      "password": "password123"
+    }

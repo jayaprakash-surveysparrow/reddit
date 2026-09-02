@@ -1,0 +1,5 @@
+$kind: http-request
+name: Leave Community
+order: 8000
+method: DELETE
+url: '{{baseUrl}}/communities/{{communityName}}/leave'

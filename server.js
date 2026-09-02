@@ -2,11 +2,14 @@ const express = require('express');
 const cors = require('cors');
 
 const routes = require('./routes');
+const requestLogger = require('./middleware/requestLogger');
+const logger = require('./utils/logger');
 
 const PORT = process.env.PORT || 3000;
 
 const app = express();
 
+app.use(requestLogger);
 app.use(cors());
 app.use(express.json());
 
@@ -17,5 +20,5 @@ app.use((req, res) => {
 });
 
 app.listen(PORT, () => {
-  console.log(`Reddit clone API listening on http://localhost:${PORT}`);
+  logger.info(`Reddit clone API listening on http://localhost:${PORT}`);
 });

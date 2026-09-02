@@ -17,14 +17,20 @@ async function addMembership(communityId, userId, role, transaction) {
 }
 
 async function removeMembership(communityId, userId, transaction) {
-  await CommunityMember.destroy({ where: { community_id: communityId, user_id: userId }, transaction });
+  await CommunityMember.destroy({
+    where: { community_id: communityId, user_id: userId },
+    transaction,
+    individualHooks: true,
+  });
 }
 
-async function listMembersWithUsers(communityId) {
+async function listMembersWithUsers(communityId, limit, offset) {
   const memberships = await CommunityMember.findAll({
     where: { community_id: communityId },
     include: [{ model: User, attributes: ['id', 'username'] }],
     order: [['joined_at', 'ASC']],
+    limit,
+    offset,
   });
 
   return memberships.map((m) => ({

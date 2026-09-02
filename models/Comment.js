@@ -15,7 +15,7 @@ const Comment = sequelize.define(
     },
     author_id: {
       type: DataTypes.UUID,
-      allowNull: false,
+      allowNull: true,
     },
     parent_comment_id: {
       type: DataTypes.UUID,
