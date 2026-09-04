@@ -2,10 +2,6 @@ const redis = require('../db/redis');
 const { bumpVersion } = require('./version');
 const logger = require('../utils/logger');
 
-// A failed invalidation (e.g. Redis unreachable) must never fail the
-// mutation that triggered it — worst case, a cached view stays stale until
-// its TTL expires, which is a much smaller problem than a legitimate DB
-// write failing because of a caching side-effect.
 async function safely(fn) {
   try {
     await fn();

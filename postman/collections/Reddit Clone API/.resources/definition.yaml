@@ -1,5 +1,4 @@
 $kind: collection
-name: Reddit Clone API
 description: A Reddit clone REST API with auth, communities, posts, comments, and voting.
 auth:
   type: bearer

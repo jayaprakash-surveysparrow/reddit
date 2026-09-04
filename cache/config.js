@@ -3,24 +3,6 @@ require('dotenv').config();
 const DEFAULT_THRESHOLD = parseInt(process.env.CACHE_HOT_THRESHOLD, 10) || 5;
 const DEFAULT_WINDOW_SECONDS = parseInt(process.env.CACHE_HOT_WINDOW_SECONDS, 10) || 60;
 
-// Deliberately NOT here, and why:
-//  - every POST/PATCH/PUT/DELETE: caching a write doesn't mean anything here.
-//  - GET /users/me: low volume per user, and you expect to see your own just-
-//    made edit immediately — the correctness risk isn't worth the benefit.
-//  - GET /audit-logs: an audit trail is read for its freshness, not its
-//    speed, and it's not a hot path.
-//
-// Each entry:
-//  - ttlSeconds: how long a cached value is trusted, based on how fast the
-//    underlying DATA goes stale — NOT how popular the route is. Popularity
-//    is a separate axis, decided at request time by cache/hotness.js.
-//  - buildKeyBase(req): the cache key, ignoring versioning.
-//  - versionNamespace(req): present only for "list" caches with no single
-//    resource id to delete on invalidation (see cache/version.js) — bumping
-//    this counter orphans every previously cached page/sort/filter
-//    combination at once, without needing to enumerate or SCAN for them.
-//    Absent for single-resource caches, which are invalidated by deleting
-//    their exact key directly instead (see cache/invalidate.js).
 const routes = {
   listCommunities: {
     ttlSeconds: 30,
