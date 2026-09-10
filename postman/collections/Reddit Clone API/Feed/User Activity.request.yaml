@@ -1,0 +1,7 @@
+$kind: http-request
+url: '{{baseUrl}}/admin/users/{{username}}/activity'
+method: GET
+order: 3461874481192987
+headers:
+  - key: Authorization
+    value: 'Bearer {{accessToken}}'

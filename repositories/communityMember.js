@@ -1,4 +1,5 @@
 const { CommunityMember, User } = require('../models');
+const {Op} = require('sequelize');
 
 async function findMembership(communityId, userId, transaction) {
   const membership = await CommunityMember.findOne({
@@ -41,6 +42,27 @@ async function listMembersWithUsers(communityId, limit, offset) {
   }));
 }
 
+async function listMemberEmailsByCommunity(communityId, excludeUserId, limit, offset) {
+  const otherMembers = await CommunityMember.findAll({
+    include: [{ model: User, attributes: ['id', 'username', 'email']}],
+    where: {
+      community_id: communityId,
+      user_id: {
+        [Op.ne]: excludeUserId
+      }
+    },
+    order: [['id', 'ASC']],
+    limit,
+    offset
+  });
+
+  return otherMembers.map((m) => ({
+    id: m.User.id,
+    username: m.User.username,
+    email: m.User.email
+  }));
+}
+
 async function listJoinedCommunityIds(userId) {
   const memberships = await CommunityMember.findAll({
     where: { user_id: userId },
@@ -55,4 +77,5 @@ module.exports = {
   removeMembership,
   listMembersWithUsers,
   listJoinedCommunityIds,
+  listMemberEmailsByCommunity
 };

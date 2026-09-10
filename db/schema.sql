@@ -188,3 +188,10 @@ CREATE TABLE audit_logs (
 CREATE INDEX audit_logs_entity_idx ON audit_logs (entity_type, entity_id);
 CREATE INDEX audit_logs_actor_id_idx ON audit_logs (actor_id);
 CREATE INDEX audit_logs_created_at_idx ON audit_logs (created_at DESC);
+
+CREATE TABLE notification_sends (
+  post_id UUID NOT NULL REFERENCES posts(id) ON DELETE CASCADE,
+  recipient_id UUID NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+  sent_at TIMESTAMPTZ NOT NULL DEFAULT now(),
+  PRIMARY KEY (post_id, recipient_id)
+);

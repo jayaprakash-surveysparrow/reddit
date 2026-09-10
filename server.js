@@ -1,4 +1,5 @@
 const express = require('express');
+const {rateLimit} = require('./rateLimit/rateLimitMiddleware');
 const cors = require('cors');
 
 const routes = require('./routes');
@@ -9,10 +10,11 @@ const PORT = process.env.PORT || 3000;
 
 const app = express();
 
+app.set('trust proxy', 1);
 app.use(requestLogger);
 app.use(cors());
 app.use(express.json());
-
+app.use(rateLimit('global'));
 app.use('/api/v1', routes);
 
 app.use((req, res) => {

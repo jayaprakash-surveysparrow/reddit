@@ -12,6 +12,8 @@ router.use('/communities', require('./community'));
 router.use('/posts', require('./post'));
 router.use('/comments', require('./comment'));
 router.use('/audit-logs', require('./auditLog'));
+router.use('/search', require('./search'));
+router.use('/admin', require('./admin'));
 
 // requireAuth must run before cacheRoute here: the feed's cache key is
 // per-user (req.user.id), so the cache layer needs auth to have already run.

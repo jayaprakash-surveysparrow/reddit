@@ -1,5 +1,5 @@
 const router = require('express').Router();
-
+const {rateLimit} = require('../rateLimit/rateLimitMiddleware');
 const communityController = require('../controllers/community');
 const postController = require('../controllers/post');
 const requireAuth = require('../middleware/requireAuth');
@@ -32,7 +32,7 @@ router.get(
   cacheRoute('listCommunityPosts'),
   postController.listCommunityPosts
 );
-router.post('/:name/posts', requireAuth, validate(communityNameParam, 'params'), postController.createPost);
+router.post('/:name/posts', requireAuth, rateLimit('write'), validate(communityNameParam, 'params'), postController.createPost);
 
 router.get('/:name', validate(communityNameParam, 'params'), cacheRoute('getCommunity'), communityController.getCommunity);
 router.patch('/:name', requireAuth, validate(communityNameParam, 'params'), validate(communityNameParam, 'params'), communityController.updateCommunity);

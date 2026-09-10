@@ -19,6 +19,7 @@ const {
   listMembersWithUsers,
 } = require('../repositories/communityMember');
 const { invalidateCommunity, invalidateCommunityMembersList } = require('../cache/invalidate');
+const {searchIndexQueue} = require('../queues/searchIndexQueue');
 
 async function createCommunity(req, res) {
   const { name, description } = req.body;
@@ -37,6 +38,10 @@ async function createCommunity(req, res) {
     });
 
     res.status(201).json(community);
+    searchIndexQueue.add('index-community', { entity: 'community', action: 'upsert', id: community.id }).catch((err) => {
+      logger.error(`Failed to enqueue search index job for community ${community.id}: ${err.message}`, { stack: err.stack });
+    });
+
   } catch (err) {
     logger.error(err.message, { stack: err.stack });
     res.status(500).json({ error: 'Something went wrong' });
@@ -89,6 +94,9 @@ async function updateCommunity(req, res) {
     if (Object.keys(fields).length > 0) {
       await updateCommunityFields(community.id, fields);
       await invalidateCommunity(community.name);
+      searchIndexQueue.add('index-community', { entity: 'community', action: 'upsert', id: community.id }).catch((err) => {
+        logger.error(`Failed to enqueue search index job for community ${community.id}: ${err.message}`, { stack: err.stack });
+      });
       if (fields.name) await invalidateCommunity(fields.name);
     }
 
@@ -110,6 +118,9 @@ async function deleteCommunity(req, res) {
 
     await softDeleteCommunity(community.id);
     await invalidateCommunity(community.name);
+    searchIndexQueue.add('index-community', { entity: 'community', action: 'delete', id: community.id }).catch((err) => {
+      logger.error(`Failed to enqueue search index job for community ${community.id}: ${err.message}`, { stack: err.stack });
+    });
     res.status(204).send();
   } catch (err) {
     logger.error(err.message, { stack: err.stack });

@@ -13,6 +13,8 @@ const {
   listCommentsByPost,
 } = require('../repositories/comment');
 const { invalidatePost } = require('../cache/invalidate');
+const { searchIndexQueue } = require('../queues/searchIndexQueue');
+const { activityQueue } = require('../queues/activityQueue');
 
 async function createComment(req, res) {
   try {
@@ -38,6 +40,23 @@ async function createComment(req, res) {
       return created;
     });
     await invalidatePost(post.id);
+
+    searchIndexQueue.add('index-comment', { entity: 'comment', action: 'upsert', id: comment.id }).catch((err) => {
+      logger.error(`Failed to enqueue search index job for comment ${comment.id}: ${err.message}`, { stack: err.stack });
+    });
+
+    activityQueue.add('activity-comment-created', {
+      type: 'comment_created',
+      userId: req.user.id,
+      username: req.user.username,
+      communityId: post.community_id,
+      communityName: post.community_name,
+      targetType: 'comment',
+      targetId: comment.id,
+      createdAt: comment.created_at,
+    }).catch((err) => {
+      logger.error(`Failed to enqueue activity job for comment ${comment.id}: ${err.message}`, { stack: err.stack });
+    });
 
     res.status(201).json(comment);
   } catch (err) {
@@ -71,6 +90,10 @@ async function updateComment(req, res) {
     await updateCommentBody(comment.id, body);
     await invalidatePost(comment.post_id);
 
+    searchIndexQueue.add('index-comment', { entity: 'comment', action: 'upsert', id: comment.id }).catch((err) => {
+      logger.error(`Failed to enqueue search index job for comment ${comment.id}: ${err.message}`, { stack: err.stack });
+    });
+
     const updated = await findCommentById(comment.id);
     res.status(200).json(updated);
   } catch (err) {
@@ -97,6 +120,11 @@ async function deleteComment(req, res) {
 
     await softDeleteComment(comment.id);
     await invalidatePost(comment.post_id);
+
+    searchIndexQueue.add('index-comment', { entity: 'comment', action: 'delete', id: comment.id }).catch((err) => {
+      logger.error(`Failed to enqueue search index job for comment ${comment.id}: ${err.message}`, { stack: err.stack });
+    });
+
     res.status(204).send();
   } catch (err) {
     logger.error(err.message, { stack: err.stack });

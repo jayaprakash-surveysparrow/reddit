@@ -10,8 +10,8 @@ body:
   type: json
   content: |-
     {
-      "username": "johndoe",
-      "password": "password123"
+      "username": "technologyfan",
+      "password": "Password123!"
     }
 scripts:
   - type: afterResponse
@@ -20,3 +20,4 @@ scripts:
       const json = pm.response.json();
       if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);
       if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);
+      if (json.user && json.user.username) pm.collectionVariables.set('username', json.user.username);

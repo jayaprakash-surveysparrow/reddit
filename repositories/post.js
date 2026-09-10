@@ -90,6 +90,17 @@ async function listActivePostsByAuthor(authorId, limit, offset) {
   return posts.map(flattenPost);
 }
 
+async function listAllActivePostsForIndexing(limit, offset) {
+  const posts = await Post.findAll({
+    where: { deleted_at: null },
+    include: DISPLAY_INCLUDES,
+    order: [['created_at', 'ASC']],
+    limit,
+    offset,
+  });
+  return posts.map(flattenPost);
+}
+
 module.exports = {
   findActivePostById,
   findPostById,
@@ -101,4 +112,5 @@ module.exports = {
   listActivePostsByCommunity,
   listActivePostsByCommunityIds,
   listActivePostsByAuthor,
+  listAllActivePostsForIndexing,
 };

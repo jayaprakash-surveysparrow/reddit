@@ -65,6 +65,17 @@ async function listActiveCommentsByAuthor(authorId, limit, offset) {
   return comments.map((c) => c.get({ plain: true }));
 }
 
+async function listAllActiveCommentsForIndexing(limit, offset) {
+  const comments = await Comment.findAll({
+    where: { deleted_at: null },
+    include: AUTHOR_INCLUDE,
+    order: [['created_at', 'ASC']],
+    limit,
+    offset,
+  });
+  return comments.map(flattenComment);
+}
+
 module.exports = {
   findCommentById,
   createComment,
@@ -73,4 +84,5 @@ module.exports = {
   adjustScore,
   listCommentsByPost,
   listActiveCommentsByAuthor,
+  listAllActiveCommentsForIndexing,
 };

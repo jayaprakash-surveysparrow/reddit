@@ -4,9 +4,12 @@
   "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "dev": "node --watch server.js"
+    "start:server": "nodemon server.js",
+    "start:workers": "nodemon workers/index.js",
+    "start:monitor": "nodemon monitor/queueMetrics.js",
+    "start": "bash scripts/start-all.sh",
+    "start:concurrent": "concurrently -n server,workers,monitor -c blue,green,yellow \"npm:start:server\" \"npm:start:workers\" \"npm:start:monitor\"",
+    "dev": "nodemon --watch server.js"
   },
   "repository": {
     "type": "git",
@@ -21,6 +24,9 @@
   },
   "homepage": "https://github.com/jayaprakash-surveysparrow/reddit#readme",
   "dependencies": {
+    "@bull-board/api": "^9.8.0",
+    "@bull-board/express": "^9.8.0",
+    "@opensearch-project/opensearch": "^3.6.0",
     "bcryptjs": "^3.0.3",
     "brew": "^0.0.8",
     "bullmq": "^6.3.4",
@@ -30,9 +36,14 @@
     "ioredis": "^6.0.0",
     "joi": "^18.2.5",
     "jsonwebtoken": "^9.0.3",
+    "nodemailer": "^10.0.0",
+    "nodemon": "^3.1.14",
     "pg": "^8.23.0",
     "redis": "^6.2.1",
     "sequelize": "^6.37.8",
     "winston": "^3.19.0"
+  },
+  "devDependencies": {
+    "concurrently": "^10.0.5"
   }
 }

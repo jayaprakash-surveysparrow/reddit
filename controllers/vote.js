@@ -13,6 +13,8 @@ const {
   deleteCommentVote,
 } = require('../repositories/vote');
 const { invalidatePost } = require('../cache/invalidate');
+const { searchIndexQueue } = require('../queues/searchIndexQueue');
+const { activityQueue } = require('../queues/activityQueue');
 
 const postOps = {
   findVote: findPostVote,
@@ -26,6 +28,10 @@ const postOps = {
   // vote that's just the target itself; for a comment vote it's the
   // comment's parent post.
   postIdOf: (target) => target.id,
+  searchEntity: 'post',
+  // The post already carries its own community info (from flattenPost), so
+  // no extra lookup is needed here — unlike commentOps below.
+  getCommunityContext: async (target) => ({ communityId: target.community_id, communityName: target.community_name }),
 };
 
 const commentOps = {
@@ -36,7 +42,20 @@ const commentOps = {
   adjustScore: adjustCommentScore,
   refetch: findCommentById,
   postIdOf: (target) => target.post_id,
+  searchEntity: 'comment',
+  // A comment doesn't carry its own community info, so resolve it through
+  // the parent post — one extra lookup, only on the vote path.
+  getCommunityContext: async (target) => {
+    const post = await findActivePostById(target.post_id);
+    return post ? { communityId: post.community_id, communityName: post.community_name } : { communityId: null, communityName: null };
+  },
 };
+
+function enqueueReindex(ops, targetId) {
+  searchIndexQueue.add(`index-${ops.searchEntity}`, { entity: ops.searchEntity, action: 'upsert', id: targetId }).catch((err) => {
+    logger.error(`Failed to enqueue search index job for ${ops.searchEntity} ${targetId}: ${err.message}`, { stack: err.stack });
+  });
+}
 
 async function castOrChangeVote(req, res, target, ops) {
   const { value } = req.body;
@@ -57,6 +76,21 @@ async function castOrChangeVote(req, res, target, ops) {
   });
 
   await invalidatePost(ops.postIdOf(target));
+  enqueueReindex(ops, target.id);
+
+  const { communityId, communityName } = await ops.getCommunityContext(target);
+  activityQueue.add('activity-vote-cast', {
+    type: 'vote_cast',
+    userId: req.user.id,
+    username: req.user.username,
+    communityId,
+    communityName,
+    targetType: ops.searchEntity,
+    targetId: target.id,
+    createdAt: new Date().toISOString(),
+  }).catch((err) => {
+    logger.error(`Failed to enqueue activity job for vote on ${ops.searchEntity} ${target.id}: ${err.message}`, { stack: err.stack });
+  });
 
   const fresh = await ops.refetch(target.id);
   res.status(200).json({ target_id: target.id, value, score: fresh.score });
@@ -75,6 +109,7 @@ async function removeVote(req, res, target, ops) {
   if (!found) return res.status(404).json({ error: 'No existing vote to remove' });
 
   await invalidatePost(ops.postIdOf(target));
+  enqueueReindex(ops, target.id);
 
   const fresh = await ops.refetch(target.id);
   res.status(200).json({ target_id: target.id, score: fresh.score });

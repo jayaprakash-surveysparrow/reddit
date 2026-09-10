@@ -55,6 +55,21 @@ async function listActiveCommunities(nameQuery, limit, offset) {
   return communities.map((c) => c.get({ plain: true }));
 }
 
+async function findActiveCommunityById(id, transaction) {
+  const community = await Community.findOne({ where: { id, deleted_at: null }, transaction});
+  return community ? community.get({ plain: true }) : null;
+}
+
+async function listAllActiveCommunitiesForIndexing(limit, offset) {
+  const communities = await Community.findAll({
+    where: { deleted_at: null },
+    order: [['created_at', 'ASC']],
+    limit,
+    offset,
+  });
+  return communities.map((c) => c.get({plain: true}));
+}
+
 module.exports = {
   findActiveCommunityByName,
   findCommunityById,
@@ -64,4 +79,6 @@ module.exports = {
   softDeleteCommunity,
   incrementMemberCount,
   listActiveCommunities,
+  findActiveCommunityById,
+  listAllActiveCommunitiesForIndexing
 };

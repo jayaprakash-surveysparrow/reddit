@@ -50,6 +50,15 @@ async function updatePasswordHash(userId, passwordHash, transaction) {
   );
 }
 
+async function listAllUsersForIndexing(limit, offset) {
+  const users = await User.findAll({
+    order: [['created_at', 'ASC']],
+    limit,
+    offset,
+  });
+  return users.map((u) => u.get({ plain: true }));
+}
+
 module.exports = {
   findUserById,
   findUserByUsernameOrEmail,
@@ -58,4 +67,5 @@ module.exports = {
   createUser,
   updateUserFields,
   updatePasswordHash,
+  listAllUsersForIndexing,
 };

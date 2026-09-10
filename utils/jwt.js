@@ -2,7 +2,7 @@ require('dotenv').config();
 const crypto = require('crypto');
 const jwt = require('jsonwebtoken');
 
-const ACCESS_TOKEN_TTL = '5m';
+const ACCESS_TOKEN_TTL = '5d';
 const REFRESH_TOKEN_TTL = '7d';
 const REFRESH_TOKEN_TTL_MS = 7 * 24 * 60 * 60 * 1000;
 

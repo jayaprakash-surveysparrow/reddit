@@ -7,6 +7,7 @@ const { findUserByUsername, findUserByEmail, findUserById, updateUserFields } = 
 const { listActivePostsByAuthor } = require('../repositories/post');
 const { listActiveCommentsByAuthor } = require('../repositories/comment');
 const { invalidateUserProfile } = require('../cache/invalidate');
+const { searchIndexQueue } = require('../queues/searchIndexQueue');
 
 async function getUserProfile(req, res) {
   try {
@@ -49,6 +50,10 @@ async function updateCurrentUser(req, res) {
       // req.user.username is the pre-update value — exactly the key
       // currently cached, regardless of whether username itself changed.
       await invalidateUserProfile(user.username);
+
+      searchIndexQueue.add('index-profile', { entity: 'profile', action: 'upsert', id: user.id }).catch((err) => {
+        logger.error(`Failed to enqueue search index job for profile ${user.id}: ${err.message}`, { stack: err.stack });
+      });
     }
 
     const updated = await findUserById(user.id);

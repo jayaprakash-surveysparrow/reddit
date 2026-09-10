@@ -11,6 +11,7 @@ const Comment = require('./Comment');
 const PostVote = require('./PostVote');
 const CommentVote = require('./CommentVote');
 const AuditLog = require('./AuditLog');
+const NotificationSend = require('./NotificationSend');
 
 CommunityMember.belongsTo(User, { foreignKey: 'user_id' });
 CommunityMember.belongsTo(Community, { foreignKey: 'community_id' });
@@ -56,4 +57,5 @@ module.exports = {
   PostVote,
   CommentVote,
   AuditLog,
+  NotificationSend
 };

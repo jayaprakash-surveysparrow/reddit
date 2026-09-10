@@ -21,4 +21,4 @@ const auditQueue = new Queue(AUDIT_QUEUE_NAME, {
     }
 });
 
-module.exports = { auditQueue, AUDIT_QUEUE_NAME };
+module.exports = { auditQueue, AUDIT_QUEUE_NAME};

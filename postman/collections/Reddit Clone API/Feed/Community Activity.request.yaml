@@ -1,0 +1,4 @@
+$kind: http-request
+url: "{{baseUrl}}/admin/communities/{{community}}/activity"
+method: GET
+order: 3717686322825117

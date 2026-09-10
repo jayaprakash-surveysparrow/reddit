@@ -26,6 +26,7 @@ const {
   deleteRefreshTokenById,
   deleteRefreshTokenByHash,
 } = require('../repositories/refreshToken');
+const { searchIndexQueue } = require('../queues/searchIndexQueue');
 
 const RESET_TOKEN_TTL_MS = 15 * 60 * 1000;
 
@@ -55,6 +56,10 @@ async function signup(req, res) {
     const passwordHash = await bcrypt.hash(password, 10);
     const user = await createUser({ username, email, passwordHash });
     const tokens = await issueTokenPair(user);
+
+    searchIndexQueue.add('index-profile', { entity: 'profile', action: 'upsert', id: user.id }).catch((err) => {
+      logger.error(`Failed to enqueue search index job for profile ${user.id}: ${err.message}`, { stack: err.stack });
+    });
 
     res.status(201).json({ user, ...tokens });
   } catch (err) {
