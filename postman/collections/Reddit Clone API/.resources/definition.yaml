@@ -1,6 +1,12 @@
 $kind: collection
 variables:
-  baseUrl: http://localhost:3000/api/v1
-  accessToken: ""
-  refreshToken: ""
+  baseUrl: ""
+  communityName: ""
+  postId: ""
+  commentId: ""
+  jwtToken2: ""
   username: ""
+auth:
+  - id: 0f6623ba-b9f8-4c96-b0f8-b17e4899ecc2
+    type: noauth
+    name: No Auth

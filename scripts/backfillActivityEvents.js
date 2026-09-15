@@ -94,13 +94,20 @@ async function backfillCommentCreatedEvents(postCommunityMap) {
 // only synthesize ONE vote_cast event per existing vote row, reflecting its
 // most recent change, not every intermediate vote flip. Disclosed
 // simplification, same spirit as the rest of this backfill.
+//
+// The id is keyed by (target, user), not the vote row's own id: the same
+// key the live activity worker uses for vote_cast events (see
+// controllers/vote.js). A vote row's id changes every time it's removed and
+// re-cast, but the user+target pair doesn't — keying on that pair means a
+// later live vote on this target upserts this same document instead of
+// duplicating it.
 async function backfillPostVoteEvents(postCommunityMap) {
     const votes = await PostVote.findAll({ include: [{ model: User, attributes: ['username'] }] });
     const items = votes.map((v) => {
         const vote = v.get({ plain: true });
         const context = postCommunityMap.get(vote.post_id) || { community_id: null, community_name: null };
         return {
-            id: `backfill:vote_cast:${vote.id}`,
+            id: `vote_cast:post:${vote.post_id}:${vote.user_id}`,
             doc: {
                 type: 'vote_cast',
                 user_id: vote.user_id,
@@ -124,7 +131,7 @@ async function backfillCommentVoteEvents(commentPostMap, postCommunityMap) {
         const postId = commentPostMap.get(vote.comment_id);
         const context = (postId && postCommunityMap.get(postId)) || { community_id: null, community_name: null };
         return {
-            id: `backfill:vote_cast:${vote.id}`,
+            id: `vote_cast:comment:${vote.comment_id}:${vote.user_id}`,
             doc: {
                 type: 'vote_cast',
                 user_id: vote.user_id,

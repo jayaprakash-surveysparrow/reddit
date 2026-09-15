@@ -58,4 +58,16 @@ function buildSearchBody(config, q, sort, time, limit) {
   return body;
 }
 
-module.exports = { buildSearchBody };
+function buildAutocompleteBody(q, limit) {
+  return {
+    size: limit,
+    query: {
+      match: {
+        'name.prefix' : { query: q },
+      },
+    },
+  sort: ['_score', { member_count: 'desc'}],
+  };
+}
+
+module.exports = { buildSearchBody, buildAutocompleteBody };

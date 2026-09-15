@@ -10,5 +10,5 @@ body:
   type: json
   content: |-
     {
-      "body": "Updated comment text"
+      "body": "Updated comment body"
     }

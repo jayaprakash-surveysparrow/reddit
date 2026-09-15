@@ -1,0 +1,11 @@
+$kind: http-request
+headers:
+  Authorization: Bearer {{jwtToken2}}
+order: 1000
+method: GET
+url: "{{baseUrl}}/admin/communities/{{communityName}}/activity"
+queryParams:
+  - key: time
+    value: week
+    disabled: true
+    description: "hour, today, week, month, year, or all (default: all)"

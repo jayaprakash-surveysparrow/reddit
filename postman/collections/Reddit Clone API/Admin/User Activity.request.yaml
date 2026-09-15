@@ -1,0 +1,10 @@
+$kind: http-request
+name: User Activity
+order: 2000
+method: GET
+url: '{{baseUrl}}/admin/users/{{username}}/activity'
+queryParams:
+  - key: time
+    value: week
+    description: 'hour, today, week, month, year, or all (default: all)'
+    disabled: true

@@ -3,3 +3,5 @@ name: Get User Comments
 order: 5000
 method: GET
 url: '{{baseUrl}}/users/{{username}}/comments'
+auth:
+  type: noauth

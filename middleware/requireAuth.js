@@ -6,8 +6,6 @@ const logger = require('../utils/logger');
 
 async function requireAuth(req, res, next) {
   const authHeader = req.headers.authorization;
-  console.log('RAW AUTH HEADER:', JSON.stringify(authHeader));
-console.log('AUTH HEADER LENGTH:', authHeader.length);
   if (!authHeader || !authHeader.startsWith('Bearer ')) {
     return res.status(401).json({ error: 'Authorization header with Bearer token is required' });
   }
@@ -16,10 +14,6 @@ console.log('AUTH HEADER LENGTH:', authHeader.length);
 
   let payload;
   try {
-    console.log('RAW TOKEN:', JSON.stringify(token));
-    console.log('DOT COUNT:', token.split('.').length);
-    console.log('LENGTH:', token.length);
-    
     payload = verifyAccessToken(token);
   } catch (err){
     return res.status(401).json({ error: err.message });

@@ -3,3 +3,5 @@ name: Get User Profile
 order: 3000
 method: GET
 url: '{{baseUrl}}/users/{{username}}'
+auth:
+  type: noauth

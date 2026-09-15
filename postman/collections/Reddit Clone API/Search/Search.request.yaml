@@ -1,0 +1,21 @@
+$kind: http-request
+name: Search
+order: 1000
+method: GET
+url: '{{baseUrl}}/search'
+queryParams:
+  - key: q
+    value: technology
+    description: Search term (required)
+  - key: sort
+    value: relevance
+    description: 'relevance, hot, top, new, or comments (default: relevance)'
+    disabled: true
+  - key: time
+    value: all
+    description: 'hour, today, week, month, year, or all (default: all)'
+    disabled: true
+  - key: limit
+    value: '10'
+    description: Max results per category, 1-25 (default 10)
+    disabled: true

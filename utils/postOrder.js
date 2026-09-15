@@ -12,7 +12,7 @@ function postOrderClause(sort) {
     return [['score', 'DESC']];
   }
   if (sort === 'hot') {
-    return [[Sequelize.literal('score / POWER(EXTRACT(EPOCH FROM (now() - created_at)) / 3600 + 2, 1.5)'), 'DESC']];
+    return [[Sequelize.literal('"Post"."score" / POWER(EXTRACT(EPOCH FROM (now() - "Post"."created_at")) / 3600 + 2, 1.5)'), 'DESC']];
   }
   return [['created_at', 'DESC']];
 }

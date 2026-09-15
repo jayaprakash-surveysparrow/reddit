@@ -1,0 +1,24 @@
+$kind: http-request
+name: Get Audit Logs
+order: 1000
+method: GET
+url: '{{baseUrl}}/audit-logs'
+queryParams:
+  - key: entityType
+    value: Post
+    description: 'User, Community, CommunityMember, Post, Comment, PostVote, or CommentVote'
+    disabled: true
+  - key: entityId
+    value: ''
+    description: Filter by a specific entity's UUID
+    disabled: true
+  - key: actorId
+    value: ''
+    description: Filter by the user who performed the action (UUID)
+    disabled: true
+  - key: page
+    value: '1'
+    disabled: true
+  - key: limit
+    value: '20'
+    disabled: true

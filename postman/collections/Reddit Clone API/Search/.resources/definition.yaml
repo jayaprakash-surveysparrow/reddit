@@ -1,0 +1,5 @@
+$kind: collection
+name: Search
+description: Cross-entity full-text search (OpenSearch-backed) across posts, communities, comments, and profiles.
+auth:
+  type: noauth

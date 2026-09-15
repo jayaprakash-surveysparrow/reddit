@@ -1,11 +1,10 @@
 $kind: http-request
-name: Create Post in Community
 order: 10000
 method: POST
-url: '{{baseUrl}}/communities/{{communityName}}/posts'
+url: "{{baseUrl}}/communities/{{communityName}}/posts"
 headers:
-  - key: Content-Type
-    value: application/json
+  Content-Type: application/json
+  Authorization: Bearer {{jwtToken2}}
 body:
   type: json
   content: |-
@@ -14,3 +13,9 @@ body:
       "body": "This is the body of my post",
       "post_type": "text"
     }
+scripts:
+  - type: afterResponse
+    code: |-
+      const json = pm.response.json();
+      if (json.id) pm.collectionVariables.set('postId', json.id);
+    language: text/javascript

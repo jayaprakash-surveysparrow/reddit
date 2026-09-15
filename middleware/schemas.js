@@ -49,4 +49,9 @@ const topActiveQuery = activityQuery.concat(Joi.object({
   limit: Joi.number().integer().min(1).max(10),
 }));
 
-module.exports = { uuidParam, pagination, postSort, communitySearch, auditLogFilters, communityNameParam , userNameParam, searchQuery, activityQuery, topActiveQuery };
+const communityAutocompleteQuery = Joi.object({
+  q: Joi.string().alphanum().min(1).max(21).required(),
+  limit: Joi.number().integer().min(1).max(10),
+});
+
+module.exports = { uuidParam, pagination, postSort, communitySearch, auditLogFilters, communityNameParam , userNameParam, searchQuery, activityQuery, topActiveQuery, communityAutocompleteQuery };

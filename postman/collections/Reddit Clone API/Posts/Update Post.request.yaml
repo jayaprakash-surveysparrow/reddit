@@ -10,6 +10,6 @@ body:
   type: json
   content: |-
     {
-      "title": "Updated post title",
-      "body": "Updated post body"
+      "title": "Updated title",
+      "body": "Updated body"
     }

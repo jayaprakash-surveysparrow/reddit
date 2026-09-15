@@ -14,3 +14,11 @@ body:
       "email": "johndoe@example.com",
       "password": "password123"
     }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      const json = pm.response.json();
+      if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);
+      if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);
+      if (json.user && json.user.username) pm.collectionVariables.set('username', json.user.username);

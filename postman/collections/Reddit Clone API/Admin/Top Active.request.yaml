@@ -1,0 +1,14 @@
+$kind: http-request
+name: Top Active
+order: 3000
+method: GET
+url: '{{baseUrl}}/admin/top-active'
+queryParams:
+  - key: time
+    value: week
+    description: 'hour, today, week, month, year, or all (default: week)'
+    disabled: true
+  - key: limit
+    value: '3'
+    description: 'Max communities/users to return, 1-10 (default: 3)'
+    disabled: true

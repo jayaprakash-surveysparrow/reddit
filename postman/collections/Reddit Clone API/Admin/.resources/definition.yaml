@@ -1,0 +1,3 @@
+$kind: collection
+name: Admin
+description: Aggregation-based dashboard endpoints (OpenSearch-backed) - community and user activity over time, plus top-active rankings. No dedicated admin role exists yet; these only require being logged in.

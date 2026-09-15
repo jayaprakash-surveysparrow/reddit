@@ -1,0 +1,6 @@
+$kind: collection
+name: Scratch Test
+description: Throwaway collection with zero history/sync ties to "Reddit Clone API" - used to isolate whether the jwt malformed issue is tied to that collection's identity or to this machine/Postman install generally.
+variables:
+  baseUrl: http://localhost:3000/api/v1
+  token: ""

@@ -1,0 +1,8 @@
+$kind: http-request
+name: Community Activity
+order: 2000
+method: GET
+url: '{{baseUrl}}/admin/communities/technology/activity'
+headers:
+  - key: Authorization
+    value: 'Bearer {{token}}'

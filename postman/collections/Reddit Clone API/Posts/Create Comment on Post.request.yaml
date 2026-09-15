@@ -13,3 +13,9 @@ body:
       "body": "This is my comment",
       "parent_comment_id": null
     }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      const json = pm.response.json();
+      if (json.id) pm.collectionVariables.set('commentId', json.id);

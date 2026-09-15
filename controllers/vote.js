@@ -61,6 +61,7 @@ async function castOrChangeVote(req, res, target, ops) {
   const { value } = req.body;
   if (value !== 1 && value !== -1) return res.status(400).json({ error: 'value must be 1 or -1' });
 
+  let changed = false;
   await sequelize.transaction(async (t) => {
     const existing = await ops.findVote(req.user.id, target.id, t);
     if (existing) {
@@ -68,29 +69,41 @@ async function castOrChangeVote(req, res, target, ops) {
       if (delta !== 0) {
         await ops.updateVoteValue(existing.id, value, t);
         await ops.adjustScore(target.id, delta, t);
+        changed = true;
       }
     } else {
       await ops.createVote(req.user.id, target.id, value, t);
       await ops.adjustScore(target.id, value, t);
+      changed = true;
     }
   });
 
-  await invalidatePost(ops.postIdOf(target));
-  enqueueReindex(ops, target.id);
+  // Only a real vote change (first vote, or flipping up/down) should bust the
+  // cache, trigger a reindex, or count as an activity event — repeat clicks
+  // that re-submit the same value are no-ops and must not be recorded again.
+  if (changed) {
+    await invalidatePost(ops.postIdOf(target));
+    enqueueReindex(ops, target.id);
 
-  const { communityId, communityName } = await ops.getCommunityContext(target);
-  activityQueue.add('activity-vote-cast', {
-    type: 'vote_cast',
-    userId: req.user.id,
-    username: req.user.username,
-    communityId,
-    communityName,
-    targetType: ops.searchEntity,
-    targetId: target.id,
-    createdAt: new Date().toISOString(),
-  }).catch((err) => {
-    logger.error(`Failed to enqueue activity job for vote on ${ops.searchEntity} ${target.id}: ${err.message}`, { stack: err.stack });
-  });
+    const { communityId, communityName } = await ops.getCommunityContext(target);
+    activityQueue.add('activity-vote-cast', {
+      // Deterministic so recasting a vote on the same target after an unvote
+      // (a fresh row with a new id, but the same user+target pair) upserts
+      // the same activity document instead of appending another one — a
+      // user toggling one post's vote five times is one activity, not five.
+      eventId: `vote_cast:${ops.searchEntity}:${target.id}:${req.user.id}`,
+      type: 'vote_cast',
+      userId: req.user.id,
+      username: req.user.username,
+      communityId,
+      communityName,
+      targetType: ops.searchEntity,
+      targetId: target.id,
+      createdAt: new Date().toISOString(),
+    }).catch((err) => {
+      logger.error(`Failed to enqueue activity job for vote on ${ops.searchEntity} ${target.id}: ${err.message}`, { stack: err.stack });
+    });
+  }
 
   const fresh = await ops.refetch(target.id);
   res.status(200).json({ target_id: target.id, value, score: fresh.score });

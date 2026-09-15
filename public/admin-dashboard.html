@@ -1,0 +1,396 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<title>Admin Dashboard</title>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.0/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0f1115;
+    --panel: #171a21;
+    --border: #2a2e37;
+    --text: #e5e7eb;
+    --muted: #9aa1ac;
+    --accent: #f97316;
+    --posts: #f97316;
+    --comments: #3b82f6;
+    --votes: #22c55e;
+    --error: #ef4444;
+  }
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    background: var(--bg);
+    color: var(--text);
+    font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+    padding: 24px;
+  }
+  h1 { font-size: 20px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 0 0 14px; color: var(--text); }
+  .subtitle { color: var(--muted); font-size: 13px; margin: 0 0 20px; }
+  .panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 10px;
+    padding: 18px 20px;
+    margin-bottom: 18px;
+  }
+  .row { display: flex; gap: 10px; flex-wrap: wrap; align-items: flex-end; margin-bottom: 14px; }
+  .field { display: flex; flex-direction: column; gap: 4px; }
+  .field label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: 0.04em; }
+  input, select {
+    background: #0d0f13;
+    border: 1px solid var(--border);
+    color: var(--text);
+    padding: 8px 10px;
+    border-radius: 6px;
+    font-size: 13px;
+    min-width: 140px;
+  }
+  button {
+    background: var(--accent);
+    border: none;
+    color: #1a0e00;
+    font-weight: 600;
+    padding: 9px 16px;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 13px;
+  }
+  button.secondary {
+    background: transparent;
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-weight: 500;
+  }
+  button:hover { opacity: 0.9; }
+  .status { font-size: 12px; color: var(--muted); margin-top: 6px; }
+  .status.ok { color: var(--votes); }
+  .status.err { color: var(--error); }
+  .stats { display: flex; gap: 12px; margin-bottom: 16px; }
+  .stat {
+    flex: 1;
+    background: #0d0f13;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+  }
+  .stat .n { font-size: 22px; font-weight: 700; }
+  .stat .l { font-size: 11px; color: var(--muted); text-transform: uppercase; margin-top: 2px; }
+  .stat.posts .n { color: var(--posts); }
+  .stat.comments .n { color: var(--comments); }
+  .stat.votes .n { color: var(--votes); }
+  .chart-wrap { position: relative; height: 260px; }
+  .top-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; }
+  @media (max-width: 800px) { .top-grid { grid-template-columns: 1fr; } }
+  .error-box { color: var(--error); font-size: 13px; padding: 10px 0; }
+  .config-grid { display: flex; gap: 24px; flex-wrap: wrap; }
+</style>
+</head>
+<body>
+
+<h1>Reddit Clone — Admin Dashboard</h1>
+<p class="subtitle">Visualizes the three OpenSearch-backed aggregation endpoints under <code>/api/v1/admin</code>. Nothing here requires Postman.</p>
+
+<div class="panel">
+  <h2>Connection</h2>
+  <div class="config-grid">
+    <div>
+      <div class="row">
+        <div class="field">
+          <label>Base URL</label>
+          <input id="baseUrl" value="http://localhost:3000/api/v1" style="min-width:260px" />
+        </div>
+        <button class="secondary" onclick="saveBaseUrl()">Save</button>
+      </div>
+    </div>
+    <div>
+      <div class="row">
+        <div class="field"><label>Username</label><input id="loginUsername" placeholder="technologyfan" /></div>
+        <div class="field"><label>Password</label><input id="loginPassword" type="password" placeholder="••••••••" /></div>
+        <button onclick="login()">Log in</button>
+      </div>
+      <div id="authStatus" class="status">Not logged in.</div>
+    </div>
+  </div>
+</div>
+
+<div class="panel">
+  <h2>Community Activity</h2>
+  <div class="row">
+    <div class="field"><label>Community</label><input id="communityName" placeholder="technology" /></div>
+    <div class="field">
+      <label>Time</label>
+      <select id="communityTime">
+        <option value="hour">Past hour</option>
+        <option value="today">Today</option>
+        <option value="week" selected>Past week</option>
+        <option value="month">Past month</option>
+        <option value="year">Past year</option>
+        <option value="all">All time</option>
+      </select>
+    </div>
+    <button onclick="loadCommunityActivity()">Load</button>
+  </div>
+  <div id="communityError" class="error-box"></div>
+  <div id="communityStats" class="stats" style="display:none">
+    <div class="stat posts"><div class="n" id="communityPosts">0</div><div class="l">Posts</div></div>
+    <div class="stat comments"><div class="n" id="communityComments">0</div><div class="l">Comments</div></div>
+    <div class="stat votes"><div class="n" id="communityVotes">0</div><div class="l">Votes</div></div>
+  </div>
+  <div class="chart-wrap"><canvas id="communityChart"></canvas></div>
+</div>
+
+<div class="panel">
+  <h2>User Activity</h2>
+  <div class="row">
+    <div class="field"><label>Username</label><input id="userName" placeholder="technologyfan" /></div>
+    <div class="field">
+      <label>Time</label>
+      <select id="userTime">
+        <option value="hour">Past hour</option>
+        <option value="today">Today</option>
+        <option value="week" selected>Past week</option>
+        <option value="month">Past month</option>
+        <option value="year">Past year</option>
+        <option value="all">All time</option>
+      </select>
+    </div>
+    <button onclick="loadUserActivity()">Load</button>
+  </div>
+  <div id="userError" class="error-box"></div>
+  <div id="userStats" class="stats" style="display:none">
+    <div class="stat posts"><div class="n" id="userPosts">0</div><div class="l">Posts</div></div>
+    <div class="stat comments"><div class="n" id="userComments">0</div><div class="l">Comments</div></div>
+    <div class="stat votes"><div class="n" id="userVotes">0</div><div class="l">Votes</div></div>
+  </div>
+  <div class="chart-wrap"><canvas id="userChart"></canvas></div>
+</div>
+
+<div class="panel">
+  <h2>Top Active</h2>
+  <div class="row">
+    <div class="field">
+      <label>Time</label>
+      <select id="topTime">
+        <option value="hour">Past hour</option>
+        <option value="today">Today</option>
+        <option value="week" selected>Past week</option>
+        <option value="month">Past month</option>
+        <option value="year">Past year</option>
+        <option value="all">All time</option>
+      </select>
+    </div>
+    <div class="field"><label>Limit</label><input id="topLimit" value="3" style="min-width:60px" /></div>
+    <button onclick="loadTopActive()">Load</button>
+  </div>
+  <div id="topError" class="error-box"></div>
+  <div class="top-grid">
+    <div>
+      <h2 style="font-size:13px;color:var(--muted)">Top Communities</h2>
+      <div class="chart-wrap"><canvas id="topCommunitiesChart"></canvas></div>
+    </div>
+    <div>
+      <h2 style="font-size:13px;color:var(--muted)">Top Users</h2>
+      <div class="chart-wrap"><canvas id="topUsersChart"></canvas></div>
+    </div>
+  </div>
+</div>
+
+<script>
+const charts = {};
+
+function getBaseUrl() {
+  return localStorage.getItem('dashboard_baseUrl') || document.getElementById('baseUrl').value.trim();
+}
+function getToken() {
+  return localStorage.getItem('dashboard_token') || '';
+}
+function saveBaseUrl() {
+  localStorage.setItem('dashboard_baseUrl', document.getElementById('baseUrl').value.trim());
+}
+(function initBaseUrl() {
+  const saved = localStorage.getItem('dashboard_baseUrl');
+  if (saved) document.getElementById('baseUrl').value = saved;
+})();
+(function initAuthStatus() {
+  const username = localStorage.getItem('dashboard_username');
+  const token = getToken();
+  const el = document.getElementById('authStatus');
+  if (token && username) {
+    el.textContent = 'Logged in as ' + username;
+    el.className = 'status ok';
+  }
+})();
+
+async function login() {
+  const username = document.getElementById('loginUsername').value.trim();
+  const password = document.getElementById('loginPassword').value;
+  const statusEl = document.getElementById('authStatus');
+  if (!username || !password) {
+    statusEl.textContent = 'Enter username and password.';
+    statusEl.className = 'status err';
+    return;
+  }
+  try {
+    const res = await fetch(getBaseUrl() + '/auth/login', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ username, password }),
+    });
+    const json = await res.json();
+    if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
+    localStorage.setItem('dashboard_token', json.accessToken);
+    localStorage.setItem('dashboard_username', json.user.username);
+    statusEl.textContent = 'Logged in as ' + json.user.username;
+    statusEl.className = 'status ok';
+  } catch (err) {
+    statusEl.textContent = 'Login failed: ' + err.message;
+    statusEl.className = 'status err';
+  }
+}
+
+async function apiGet(path) {
+  const token = getToken();
+  const res = await fetch(getBaseUrl() + path, {
+    headers: token ? { Authorization: 'Bearer ' + token } : {},
+  });
+  const json = await res.json();
+  if (!res.ok) throw new Error(json.error || ('HTTP ' + res.status));
+  return json;
+}
+
+function renderLineChart(canvasId, key, labels, series) {
+  if (charts[key]) charts[key].destroy();
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  const colors = {
+    posts: getComputedStyle(document.documentElement).getPropertyValue('--posts'),
+    comments: getComputedStyle(document.documentElement).getPropertyValue('--comments'),
+    votes: getComputedStyle(document.documentElement).getPropertyValue('--votes'),
+  };
+  charts[key] = new Chart(ctx, {
+    type: 'line',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Posts', data: series.posts, borderColor: colors.posts, backgroundColor: colors.posts, tension: 0.3, pointRadius: 3 },
+        { label: 'Comments', data: series.comments, borderColor: colors.comments, backgroundColor: colors.comments, tension: 0.3, pointRadius: 3 },
+        { label: 'Votes', data: series.votes, borderColor: colors.votes, backgroundColor: colors.votes, tension: 0.3, pointRadius: 3 },
+      ],
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { ticks: { color: '#9aa1ac' }, grid: { color: '#2a2e37' } },
+        y: { beginAtZero: true, ticks: { color: '#9aa1ac' }, grid: { color: '#2a2e37' } },
+      },
+      plugins: { legend: { labels: { color: '#e5e7eb' } } },
+    },
+  });
+}
+
+function renderStackedChart(canvasId, key, labels, series, horizontal) {
+  if (charts[key]) charts[key].destroy();
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  charts[key] = new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        { label: 'Posts', data: series.posts, backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--posts') },
+        { label: 'Comments', data: series.comments, backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--comments') },
+        { label: 'Votes', data: series.votes, backgroundColor: getComputedStyle(document.documentElement).getPropertyValue('--votes') },
+      ],
+    },
+    options: {
+      indexAxis: horizontal ? 'y' : 'x',
+      responsive: true,
+      maintainAspectRatio: false,
+      scales: {
+        x: { stacked: true, ticks: { color: '#9aa1ac' }, grid: { color: '#2a2e37' } },
+        y: { stacked: true, ticks: { color: '#9aa1ac' }, grid: { color: '#2a2e37' }, beginAtZero: true },
+      },
+      plugins: { legend: { labels: { color: '#e5e7eb' } } },
+    },
+  });
+}
+
+function formatDate(iso) {
+  const d = new Date(iso);
+  return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', hour: undefined });
+}
+
+async function loadCommunityActivity() {
+  const name = document.getElementById('communityName').value.trim();
+  const time = document.getElementById('communityTime').value;
+  const errEl = document.getElementById('communityError');
+  errEl.textContent = '';
+  if (!name) { errEl.textContent = 'Enter a community name.'; return; }
+  try {
+    const data = await apiGet('/admin/communities/' + encodeURIComponent(name) + '/activity?time=' + time);
+    document.getElementById('communityStats').style.display = 'flex';
+    document.getElementById('communityPosts').textContent = data.totals.post_created;
+    document.getElementById('communityComments').textContent = data.totals.comment_created;
+    document.getElementById('communityVotes').textContent = data.totals.vote_cast;
+    renderLineChart('communityChart', 'community', data.timeline.map((t) => formatDate(t.date)), {
+      posts: data.timeline.map((t) => t.post_created),
+      comments: data.timeline.map((t) => t.comment_created),
+      votes: data.timeline.map((t) => t.vote_cast),
+    });
+  } catch (err) {
+    errEl.textContent = err.message;
+  }
+}
+
+async function loadUserActivity() {
+  const username = document.getElementById('userName').value.trim();
+  const time = document.getElementById('userTime').value;
+  const errEl = document.getElementById('userError');
+  errEl.textContent = '';
+  if (!username) { errEl.textContent = 'Enter a username.'; return; }
+  try {
+    const data = await apiGet('/admin/users/' + encodeURIComponent(username) + '/activity?time=' + time);
+    document.getElementById('userStats').style.display = 'flex';
+    document.getElementById('userPosts').textContent = data.totals.post_created;
+    document.getElementById('userComments').textContent = data.totals.comment_created;
+    document.getElementById('userVotes').textContent = data.totals.vote_cast;
+    renderLineChart('userChart', 'user', data.timeline.map((t) => formatDate(t.date)), {
+      posts: data.timeline.map((t) => t.post_created),
+      comments: data.timeline.map((t) => t.comment_created),
+      votes: data.timeline.map((t) => t.vote_cast),
+    });
+  } catch (err) {
+    errEl.textContent = err.message;
+  }
+}
+
+async function loadTopActive() {
+  const time = document.getElementById('topTime').value;
+  const limit = document.getElementById('topLimit').value.trim() || '3';
+  const errEl = document.getElementById('topError');
+  errEl.textContent = '';
+  try {
+    const data = await apiGet('/admin/top-active?time=' + time + '&limit=' + limit);
+    renderStackedChart('topCommunitiesChart', 'topCommunities',
+      data.communities.map((c) => c.community_name || c.community_id),
+      {
+        posts: data.communities.map((c) => c.breakdown.post_created),
+        comments: data.communities.map((c) => c.breakdown.comment_created),
+        votes: data.communities.map((c) => c.breakdown.vote_cast),
+      }, true);
+    renderStackedChart('topUsersChart', 'topUsers',
+      data.users.map((u) => u.username || u.user_id),
+      {
+        posts: data.users.map((u) => u.breakdown.post_created),
+        comments: data.users.map((u) => u.breakdown.comment_created),
+        votes: data.users.map((u) => u.breakdown.vote_cast),
+      }, true);
+  } catch (err) {
+    errEl.textContent = err.message;
+  }
+}
+</script>
+</body>
+</html>

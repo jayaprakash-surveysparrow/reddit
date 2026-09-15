@@ -13,3 +13,9 @@ body:
       "name": "programming",
       "description": "A community for programmers"
     }
+scripts:
+  - type: afterResponse
+    language: text/javascript
+    code: |-
+      const json = pm.response.json();
+      if (json.name) pm.collectionVariables.set('communityName', json.name);

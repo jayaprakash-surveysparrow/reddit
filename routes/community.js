@@ -4,8 +4,8 @@ const communityController = require('../controllers/community');
 const postController = require('../controllers/post');
 const requireAuth = require('../middleware/requireAuth');
 const { validate } = require('../middleware/validate');
-const { communityNameParam, pagination, postSort, communitySearch } = require('../middleware/schemas');
 const { cacheRoute } = require('../cache/cacheMiddleware');
+const { communityNameParam, pagination, postSort, communitySearch, communityAutocompleteQuery } = require('../middleware/schemas');
 
 router.post('/', requireAuth, communityController.createCommunity);
 router.get(
@@ -24,6 +24,8 @@ router.get(
 );
 router.post('/:name/join', requireAuth, validate(communityNameParam, 'params'), communityController.joinCommunity);
 router.delete('/:name/leave', requireAuth, validate(communityNameParam, 'params'), communityController.leaveCommunity);
+
+router.get('/autocomplete', validate(communityAutocompleteQuery, 'query'), communityController.autocompleteCommunities);
 
 router.get(
   '/:name/posts',

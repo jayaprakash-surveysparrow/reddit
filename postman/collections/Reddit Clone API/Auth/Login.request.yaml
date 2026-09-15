@@ -1,11 +1,9 @@
 $kind: http-request
-name: Login
 order: 2000
 method: POST
-url: '{{baseUrl}}/auth/login'
+url: "{{baseUrl}}/auth/login"
 headers:
-  - key: Content-Type
-    value: application/json
+  Content-Type: application/json
 body:
   type: json
   content: |-
@@ -15,9 +13,9 @@ body:
     }
 scripts:
   - type: afterResponse
-    language: text/javascript
     code: |-
       const json = pm.response.json();
-      if (json.accessToken) pm.collectionVariables.set('accessToken', json.accessToken);
+      if (json.accessToken) pm.collectionVariables.set('jwtToken2', json.accessToken);
       if (json.refreshToken) pm.collectionVariables.set('refreshToken', json.refreshToken);
       if (json.user && json.user.username) pm.collectionVariables.set('username', json.user.username);
+    language: text/javascript

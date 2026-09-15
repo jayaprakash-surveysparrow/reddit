@@ -14,6 +14,7 @@ app.set('trust proxy', 1);
 app.use(requestLogger);
 app.use(cors());
 app.use(express.json());
+app.use(express.static('public'));
 app.use(rateLimit('global'));
 app.use('/api/v1', routes);
 

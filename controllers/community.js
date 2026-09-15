@@ -20,6 +20,9 @@ const {
 } = require('../repositories/communityMember');
 const { invalidateCommunity, invalidateCommunityMembersList } = require('../cache/invalidate');
 const {searchIndexQueue} = require('../queues/searchIndexQueue');
+const opensearch = require('../db/opensearch');
+const {COMMUNITIES_INDEX} = require('../search/indexNames');
+const { buildAutocompleteBody } = require('../search/queryBuilder');
 
 async function createCommunity(req, res) {
   const { name, description } = req.body;
@@ -190,6 +193,25 @@ async function listMembers(req, res) {
   }
 }
 
+async function autocompleteCommunities(req, res) {
+  try {
+    const q = req.query.q;
+    const limit = req.query.limit ? Number(req.query.limit) : 8;
+
+    const {body} = await opensearch.search({
+      index: COMMUNITIES_INDEX,
+      body: buildAutocompleteBody(q, limit),
+    });
+
+    const communities = body.hits.hits.map((hit) => hit._source);
+    res.status(200).json({communities});
+  }
+  catch(err){
+    logger.error(err.message, {stack: err.stack});
+    res.status(500).json({error: 'Something went wrong'});
+  }
+}
+
 module.exports = {
   createCommunity,
   listCommunities,
@@ -199,4 +221,5 @@ module.exports = {
   joinCommunity,
   leaveCommunity,
   listMembers,
+  autocompleteCommunities
 };

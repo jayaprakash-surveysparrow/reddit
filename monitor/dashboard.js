@@ -3,8 +3,7 @@ const { BullMQAdapter } = require('@bull-board/api/bullMQAdapter');
 const { ExpressAdapter } = require('@bull-board/express');
 const { Queue } = require('bullmq');
 
-const connection = { host: '127.0.0.1', port: 6379 }; // your Redis config
-
+const connection = require('../db/redisQueueConnection');
 const auditLogQueue = new Queue('audit-log', { connection });
 const notificationQueue = new Queue('notification-queue', { connection });
 const notificationChunksQueue = new Queue('notification-chunks', { connection });

@@ -5,16 +5,19 @@ const opensearch = require('../db/opensearch');
 const { ACTIVITY_EVENTS_INDEX } = require('../search/indexNames');
 const logger = require('../utils/logger');
 
-// Activity events are append-only facts ("this action happened at this
-// time") — never updated or deleted, so unlike the search-index worker there
-// is no upsert/delete branching here, just an insert. No explicit _id either:
-// each vote/post/comment can produce many events over time, so OpenSearch
-// auto-generating a unique id per event is correct, not an oversight.
+// Post/comment-created events are append-only facts and only ever happen
+// once per target, so they get an auto-generated id (no `eventId` on the
+// job). Vote-cast events carry a deterministic `eventId` (user+target pair)
+// instead: a vote can be cast, removed, and re-cast many times, and each of
+// those should upsert the same activity document rather than appending a
+// new one — otherwise toggling one post's vote repeatedly would inflate
+// that user's activity count far beyond the number of posts they voted on.
 async function processActivityJob(job) {
-  const { type, userId, username, communityId, communityName, targetType, targetId, createdAt } = job.data;
+  const { eventId, type, userId, username, communityId, communityName, targetType, targetId, createdAt } = job.data;
 
   return opensearch.index({
     index: ACTIVITY_EVENTS_INDEX,
+    ...(eventId ? { id: eventId } : {}),
     body: {
       type,
       user_id: userId,
